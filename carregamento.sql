@@ -1,3 +1,5 @@
+use dw;
+
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 -- POVOAMENTO DA TABELA DE DIMENSAO DE SHIPPERS
 -- ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -5,6 +7,9 @@
 insert into dw.dim_shipper(id_sh, company, last_update)
 	select s.id, s.company, now() 
     from northwind.shippers s;
+
+insert into dim_shipper (id, id_sh, company, last_update) VALUES (-1, -1, 'Unknown', '1975-01-01 00:00:00');
+    
 
 select * from dw.dim_shipper;
 
@@ -16,6 +21,8 @@ select * from dw.dim_shipper;
 insert into dw.dim_supplier(id_su, company, last_update)
 	select s.id, s.company, now() 
     from northwind.suppliers s;
+
+insert into dim_supplier (id, id_su, company, last_update) VALUES (-1, -1, 'Unknown', '1975-01-01 00:00:00');
 
 select * from dw.dim_supplier;
 
@@ -82,6 +89,42 @@ begin
 end $$
 delimiter ;
 
+delimiter $$
+create function get_supplier( order_details_id int )
+returns int
+deterministic
+begin
+    declare res int;
+    declare interm int;
+    declare res2 int;
+
+	set interm = (select od.purchase_order_id from northwind.order_details od where od.id = order_details_id);
+	set res = coalesce(interm,-1);
+    
+    if res = -1 then
+		return res;
+	else
+		set res2 = (select po.supplier_id from northwind.purchase_orders po where po.id = res);
+	end if;
+    return res2;
+end $$
+delimiter ;
+
+delimiter $$
+create function get_shipper( orders_id int )
+returns int
+deterministic
+begin
+    declare res int;
+    declare interm int;
+
+	set interm = (select shipper_id from northwind.orders where id = orders_id);
+	set res = coalesce(interm,-1);
+    
+    return res;
+end $$
+delimiter ;
+
 insert into dw.fact_vendas
 	(order_id,
     total_price,
@@ -98,41 +141,36 @@ insert into dw.fact_vendas
     select
     od.order_id,
     total_price(order_id),
-    od.quantity,
-    t.id,
+	od.quantity,
+	t.id,
     datediff(ord.shipped_date, ord.order_date),
-    l.id,
-    -- s.id,
-    0,
-    shi.id,
-    e.id,
-    p.id, 
+	l.id,
+    s.id,
+	shi.id,
+	e.id,
+	p.id,
     now()
     from
     northwind.order_details od,
     northwind.orders ord,
-    dw.dim_time t,
-    dw.dim_local l,
-    northwind.customers c,
+	dw.dim_time t,
+	dw.dim_local l,
+	northwind.customers c,
     dw.dim_shipper shi,
     dw.dim_employee e,
-    dw.dim_product p
+    dw.dim_product p,
+    dw.dim_supplier s
     where
     od.order_id = ord.id and
-    ord.order_date = t.date and
-    ord.customer_id = c.id and
-    c.city = l.city and
-    c.state_province = l.state and
-    c.country_region = l.country and
-    ord.shipper_id = shi.id_sh and
+	ord.order_date = t.date and
+	ord.customer_id = c.id and
+	c.city = l.city and
+	c.state_province = l.state and
+	c.country_region = l.country and
+	s.id_su = get_supplier(od.id) and
+	shi.id_sh = get_shipper(ord.id) and
 	ord.employee_id = e.id_e and
     od.product_id = p.id_p;
     
 select * from dw.fact_vendas;
 
-
-
-
-
-
-    
