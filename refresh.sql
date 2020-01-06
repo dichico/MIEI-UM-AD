@@ -61,27 +61,23 @@ from northwind.orders
 where dw.dim_time.id is null;
 
 -- Refresh da tabela fact_vendas - not working
-
-insert into dw.fact_vendas
-    (order_id,total_price,quantity,order_date,preparation_time,client_local,supplier,shipper,employee,product)
-select northwind.order_details.order_id, total_price(northwind.order_details.order_id), northwind.order_details.quantity, t.id, datediff(ord.shipped_date, ord.order_date),
-    l.id,
-    s.id,
-    shi.id,
-    e.id,
-    p.id
+select nw_total.order_id, nw_total.total_price, nw_total.quantity, nw_total.tid, nw_total.prepid,
+    nw_total.lid,
+    nw_total.suid,
+    nw_total.shid,
+    nw_total.eid,
+    nw_total.pid
 from (select
         od.order_id,
-        total_price(order_id),
-        od.quantity,
-        t.id,
-        datediff(ord.shipped_date, ord.order_date),
-        l.id,
-        s.id,
-        shi.id,
-        e.id,
-        p.id,
-        now()
+        total_price(order_id) as total_price,
+        od.quantity as quantity,
+        t.id as tid,
+        get_preparation_time(ord.id) as prepid,
+        l.id as lid,
+        s.id as suid,
+        shi.id as shid,
+        e.id as eid,
+        p.id as pid
     from
         northwind.order_details od,
         northwind.orders ord,
@@ -106,8 +102,8 @@ from (select
     left join dw.fact_vendas on nw_total.order_id = dw.fact_vendas.order_id and
         nw_total.total_price = dw.fact_vendas.total_price AND
         nw_total.quantity = dw.fact_vendas.quantity AND
-        nw_total.order_date = dw.fact_vendas.order_date AND
-        nw_total.preparation_time = dw.fact_vendas.preparation_time
+        nw_total.tid = dw.fact_vendas.order_date AND
+        nw_total.prepid = dw.fact_vendas.preparation_time
 where dw.fact_vendas.id is null;
 
 
@@ -122,17 +118,22 @@ where dw.fact_vendas.id is null;
 delimiter //
 
 create trigger supplier_update
-after insert
-   on dw.dim_supplier for each row
+after
+insert
+   on
+dw.dim_supplier
+for each row
 
 begin
 
-   update dw.fact_vendas
-	inner join dw.dim_supplier on 
+    update dw.fact_vendas
+	inner join dw.dim_supplier
+    on 
     dw.fact_vendas.supplier = dw.dim_supplier.id and 
     dw.dim_supplier.id_su = new.id_su and dw.dim_supplier.id_su = new.id_su
-		
-        set dw.fact_vendas.supplier = new.id;
+
+    set dw
+    .fact_vendas.supplier = new.id;
 
 end; //
 
@@ -143,17 +144,22 @@ delimiter ;
 delimiter //
 
 create trigger shipper_update
-after insert
-   on dw.dim_shipper for each row
+after
+insert
+   on
+dw.dim_shipper
+for each row
 
 begin
 
-   update dw.fact_vendas
-	inner join dw.dim_shipper on 
+    update dw.fact_vendas
+	inner join dw.dim_shipper
+    on 
     dw.sales_fact.shipper = dw.dim_shipper.id and 
     dw.dim_shipper.id_sh = new.id_sh and dw.dim_shipper.id_sh = new.id_sh
-		
-        set dw.fact_vendas.shipper = new.id;
+
+    set dw
+    .fact_vendas.shipper = new.id;
 
 end; //
 
@@ -165,18 +171,23 @@ delimiter ;
 delimiter //
 
 create trigger employee_update
-after insert
-   on dw.dim_employee for each row
+after
+insert
+   on
+dw.dim_employee
+for each row
 
 begin
 
-   update dw.fact_vendas
-	inner join dw.dim_employee on 
+    update dw.fact_vendas
+	inner join dw.dim_employee
+    on 
     dw.fact_vendas.employee = dw.dim_employee.id and 
     dw.dim_employee.id_e = new.id_e and dw.dim_employee.id_e = new.id_e
-		
-        set dw.fact_vendas.employee = new.id;
-        
+
+    set dw
+    .fact_vendas.employee = new.id;
+
 
 end; //
 
@@ -185,18 +196,23 @@ end; //
 delimiter //
 
 create trigger product_update
-after insert
-   on dw.dim_product for each row
+after
+insert
+   on
+dw.dim_product
+for each row
 
 begin
 
-   update dw.fact_vendas
-	inner join dw.dim_product on 
+    update dw.fact_vendas
+	inner join dw.dim_product
+    on 
     dw.fact_vendas.product = dw.dim_product.id and 
     dw.dim_product.id_p = new.id_p and dw.dim_product.id_p = new.id_p
-		
-        set dw.fact_vendas.product = new.id;
-        
+
+    set dw
+    .fact_vendas.product = new.id;
+
 end; //
 
 
