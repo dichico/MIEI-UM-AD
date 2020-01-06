@@ -125,6 +125,22 @@ begin
 end $$
 delimiter ;
 
+delimiter $$
+create function get_preparation_time( orders_id int )
+returns int
+deterministic
+begin
+    declare res int;
+    declare interm int;
+
+	set interm = datediff((select shipped_date from northwind.orders where id = orders_id), (select order_date from northwind.orders where id = orders_id));
+	set res = coalesce(interm,-1);
+    
+    return res;
+end $$
+delimiter ;
+
+
 insert into dw.fact_vendas
 	(order_id,
     total_price,
@@ -140,10 +156,10 @@ insert into dw.fact_vendas
     )
     select
     od.order_id,
-    total_price(order_id),
+    total_price(od.order_id),
 	od.quantity,
 	t.id,
-    datediff(ord.shipped_date, ord.order_date),
+    get_preparation_time(ord.id),
 	l.id,
     s.id,
 	shi.id,
