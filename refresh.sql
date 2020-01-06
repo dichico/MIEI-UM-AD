@@ -1,7 +1,7 @@
 -- Refresh da tabela dim_supplier
 insert into dw.dim_supplier
     (id_su,company)
-select northwind.suppliers.id, northwind.suppliers.company
+select northwind.suppliers.id, coalesce(northwind.suppliers.company,'Unkown')
 from northwind.suppliers
     left join dw.dim_supplier on northwind.suppliers.id = dw.dim_supplier.id_su and
         northwind.suppliers.company = dw.dim_supplier.company
@@ -10,7 +10,7 @@ where dw.dim_supplier.id is null;
 -- Refresh da tabela dim_shipper
 insert into dw.dim_shipper
     (id_sh,company)
-select northwind.shippers.id, northwind.shippers.company
+select northwind.shippers.id, coalesce(northwind.shippers.company,'Unkown')
 from northwind.shippers
     left join dw.dim_shipper on northwind.shippers.id = dw.dim_shipper.id_sh and
         northwind.shippers.company = dw.dim_shipper.company
@@ -19,7 +19,7 @@ where dw.dim_shipper.id is null;
 -- Refresh da tabela dim_employee
 insert into dw.dim_employee
     (id_e,company,name)
-select northwind.employees.id, northwind.employees.company, concat(northwind.employees.first_name," ",northwind.employees.last_name)
+select northwind.employees.id, coalesce(northwind.employees.company, 'Unknown'), coalesce(concat(northwind.employees.first_name," ",northwind.employees.last_name), 'Unknown')
 from northwind.employees
     left join dw.dim_employee on northwind.employees.id = dw.dim_employee.id_e and
         northwind.employees.company = dw.dim_employee.company AND
@@ -29,7 +29,7 @@ where dw.dim_employee.id is null;
 -- Refresh da tabela dim_product
 insert into dw.dim_product
     (id_p,standard_cost,category_name)
-select northwind.products.id, northwind.products.standard_cost, northwind.products.category
+select northwind.products.id, coalesce(northwind.products.standard_cost, 0), coalesce(northwind.products.category, 'Unknown')
 from northwind.products
     left join dw.dim_product on northwind.products.id = dw.dim_product.id_p and
         northwind.products.standard_cost = dw.dim_product.standard_cost AND
@@ -39,7 +39,7 @@ where dw.dim_product.id is null;
 -- Refresh da tabela dim_local
 insert into dw.dim_local
     (city,state,country)
-select distinct northwind.customers.city, northwind.customers.state_province, northwind.customers.country_region
+select distinct coalesce(northwind.customers.city, 'Unknown'), coalesce(northwind.customers.state_province, 'Unknown'), coalesce(northwind.customers.country_region, 'Unknown')
 from northwind.customers
     left join dw.dim_local on northwind.customers.city = dw.dim_local.city and
         northwind.customers.state_province = dw.dim_local.state AND
@@ -109,3 +109,98 @@ from (select
         nw_total.order_date = dw.fact_vendas.order_date AND
         nw_total.preparation_time = dw.fact_vendas.preparation_time
 where dw.fact_vendas.id is null;
+
+
+
+
+
+
+
+
+-- trigger supplier
+
+delimiter //
+
+create trigger supplier_update
+after insert
+   on dw.dim_supplier for each row
+
+begin
+
+   update dw.fact_vendas
+	inner join dw.dim_supplier on 
+    dw.fact_vendas.supplier = dw.dim_supplier.id and 
+    dw.dim_supplier.id_su = new.id_su and dw.dim_supplier.id_su = new.id_su
+		
+        set dw.fact_vendas.supplier = new.id;
+
+end; //
+
+delimiter ;	
+
+-- trigger shipper
+
+delimiter //
+
+create trigger shipper_update
+after insert
+   on dw.dim_shipper for each row
+
+begin
+
+   update dw.fact_vendas
+	inner join dw.dim_shipper on 
+    dw.sales_fact.shipper = dw.dim_shipper.id and 
+    dw.dim_shipper.id_sh = new.id_sh and dw.dim_shipper.id_sh = new.id_sh
+		
+        set dw.fact_vendas.shipper = new.id;
+
+end; //
+
+delimiter ;	
+
+
+-- trigger employee 
+
+delimiter //
+
+create trigger employee_update
+after insert
+   on dw.dim_employee for each row
+
+begin
+
+   update dw.fact_vendas
+	inner join dw.dim_employee on 
+    dw.fact_vendas.employee = dw.dim_employee.id and 
+    dw.dim_employee.id_e = new.id_e and dw.dim_employee.id_e = new.id_e
+		
+        set dw.fact_vendas.employee = new.id;
+        
+
+end; //
+
+-- trigger product
+
+delimiter //
+
+create trigger product_update
+after insert
+   on dw.dim_product for each row
+
+begin
+
+   update dw.fact_vendas
+	inner join dw.dim_product on 
+    dw.fact_vendas.product = dw.dim_product.id and 
+    dw.dim_product.id_p = new.id_p and dw.dim_product.id_p = new.id_p
+		
+        set dw.fact_vendas.product = new.id;
+        
+end; //
+
+
+
+
+
+
