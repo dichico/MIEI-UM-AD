@@ -34,6 +34,8 @@ select * from dw.dim_supplier;
 insert into dw.dim_employee(id_e, name, company, last_update)
 	select e.id, concat(e.first_name, " ", e.last_name), e.company, now()
     from northwind.employees e;
+
+insert into dim_employee (id, id_e, name, company, last_update) VALUES (-1, -1, 'Unknown', 'Unknown' ,'1975-01-01 00:00:00');
     
 select * from dw.dim_employee;
 
@@ -126,6 +128,21 @@ end $$
 delimiter ;
 
 delimiter $$
+create function get_employee( orders_id int )
+returns int
+deterministic
+begin
+    declare res int;
+    declare interm int;
+
+    set interm = (select employee_id from northwind.orders where id = orders_id);
+    set res = coalesce(interm,-1);
+    
+    return res;
+end $$
+delimiter ;
+
+delimiter $$
 create function get_preparation_time( orders_id int )
 returns int
 deterministic
@@ -185,7 +202,7 @@ insert into dw.fact_vendas
 	c.country_region = l.country and
 	s.id_su = get_supplier(od.id) and
 	shi.id_sh = get_shipper(ord.id) and
-	ord.employee_id = e.id_e and
+	e.id_e = get_employee(ord.id) and
     od.product_id = p.id_p;
     
 select * from dw.fact_vendas;
