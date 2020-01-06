@@ -61,6 +61,18 @@ from northwind.orders
 where dw.dim_time.id is null;
 
 -- Refresh da tabela fact_vendas - not working
+insert into dw.fact_vendas
+	(order_id,
+    total_price,
+    quantity,
+    order_date,
+    preparation_time,
+    client_local,
+    supplier,
+    shipper,
+    employee,
+    product
+    )
 select nw_total.order_id, nw_total.total_price, nw_total.quantity, nw_total.tid, nw_total.prepid,
     nw_total.lid,
     nw_total.suid,
@@ -105,10 +117,6 @@ from (select
         nw_total.tid = dw.fact_vendas.order_date AND
         nw_total.prepid = dw.fact_vendas.preparation_time
 where dw.fact_vendas.id is null;
-
-
-
-
 
 
 
@@ -214,6 +222,37 @@ begin
     .fact_vendas.product = new.id;
 
 end; //
+
+-- trigger fact_vendas
+
+
+delimiter //
+
+create trigger facts_update
+before insert
+   on dw.fact_vendas for each row
+
+begin
+
+	declare original_prod_id integer;
+	declare original_ship_id integer;
+	declare original_supl_id integer;
+	declare original_empl_id integer;
+	
+    select id_p into original_prod_id FROM dw.dim_product where id = product;
+    select id_sh into original_ship_id FROM dw.dim_shipper where id = shipper;
+    select id_su into original_supl_id FROM dw.dim_supplier where id = supplier;
+    select id_e into original_empl_id FROM dw.dim_employee where id = employee;
+
+	set new.product = (select dw.dim_product.id from dw.dim_product where dw.dim_product.id_p = original_prod_id order by dw.dim_product.id desc limit 1);
+	set new.shipper = (select dw.dim_shipper.id from dw.dim_shipper where dw.dim_shipper.id_sh = original_ship_id order by dw.dim_shipper.id desc limit 1);
+	set new.supplier = (select dw.dim_supplier.id from dw.original_supl_id where dw.original_supl_id.id_su = original_supl_id order by dw.original_supl_id.id desc limit 1);
+	set new.employee = (select dw.dim_employee.id from dw.original_empl_id where dw.original_empl_id.id_e = original_empl_id order by dw.original_empl_id.id desc limit 1);
+
+    
+end; //
+
+delimiter ;	
 
 
 
