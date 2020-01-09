@@ -7,7 +7,6 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 -- Schema dw
 -- -----------------------------------------------------
-DROP SCHEMA IF EXISTS `dw` ;
 
 -- -----------------------------------------------------
 -- Schema dw
@@ -104,7 +103,7 @@ CREATE TABLE IF NOT EXISTS `dw`.`fact_vendas` (
   `total_price` DECIMAL(19,4) NOT NULL,
   `quantity` DECIMAL(18,4) NOT NULL,
   `order_date` INT NOT NULL,
-  `preparation_time` INT NULL,
+  `preparation_time` INT NOT NULL,
   `client_local` INT NOT NULL,
   `supplier` INT NOT NULL,
   `shipper` INT NOT NULL,
